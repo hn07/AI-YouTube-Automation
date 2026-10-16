@@ -23,12 +23,15 @@ def _load_credentials(cred_path: Path, token_path: Path):
 
     required = set(SCOPES)
     granted = set(getattr(creds, "scopes", None) or []) if creds else set()
-    needs_consent = not creds or not creds.valid or not required.issubset(granted)
+    missing_scope = bool(creds) and not required.issubset(granted)
 
-    if creds and creds.expired and creds.refresh_token and not needs_consent:
-        creds.refresh(Request())
-    elif needs_consent:
+    if not creds or missing_scope:
         # One-time interactive consent is required when the old token lacks read-back scope.
+        flow = InstalledAppFlow.from_client_secrets_file(str(cred_path), SCOPES)
+        creds = flow.run_local_server(port=0)
+    elif creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+    elif not creds.valid:
         flow = InstalledAppFlow.from_client_secrets_file(str(cred_path), SCOPES)
         creds = flow.run_local_server(port=0)
 
