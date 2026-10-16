@@ -92,6 +92,10 @@ with tab_upload:
                 raise FileNotFoundError("Select an existing MP4 file.")
             if not confirm:
                 raise ValueError("Confirm review and rights before uploading.")
+            from src.upload_registry import find_duplicate, record_upload
+            duplicate = find_duplicate(video_path)
+            if duplicate:
+                raise ValueError("This exact MP4 was already uploaded. Existing video ID: " + str(duplicate.get("video_id", "unknown")) + ". Use the existing video instead of uploading again.")
             if privacy == "public":
                 st.info("A future publish time with public privacy is not always accepted by the API. The uploader uses private + future publishAt for scheduled publishing.")
             from src.youtube_uploader import upload_and_schedule
@@ -104,7 +108,8 @@ with tab_upload:
                     [x.strip() for x in tags_text.split(",") if x.strip()],
                     local_dt, privacy="private"
                 )
-            st.success("Upload accepted by YouTube. Verify the status in YouTube Studio.")
+            record_upload(video_path, response.get("id", ""), title, local_dt.isoformat())
+            st.success("Upload accepted by YouTube. Verify the status and schedule in YouTube Studio.")
             st.write({"video_id": response.get("id"), "scheduled_time": local_dt.isoformat(),
                       "privacy_requested": "private with scheduled publish time"})
             st.link_button("Open YouTube Studio", "https://studio.youtube.com/")
