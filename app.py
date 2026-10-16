@@ -19,9 +19,9 @@ logging.basicConfig(
     encoding="utf-8",
 )
 log = logging.getLogger("ytauto")
-st.set_page_config(page_title="AI YouTube Automation V1", page_icon="🎬", layout="wide")
-st.title("🎬 AI YouTube Automation V1")
-st.caption("Windows 11 • Zero-cost-first • English YouTube Shorts • Local dashboard")
+st.set_page_config(page_title="AI YouTube Automation V1.3", page_icon="🎬", layout="wide")
+st.title("🎬 AI YouTube Automation V1.3")
+st.caption("Windows 11 • V1.3 daily topic generation + scheduled YouTube publishing • English Shorts")
 
 with st.sidebar:
     st.header("Settings")
@@ -201,7 +201,8 @@ with tab_batch:
             st.warning(f"Could not display batch history: {e}")
 
 with tab_help:
-    st.subheader("Setup checklist")
+    st.subheader("Setup checklist — V1.3")
+    st.markdown("""\n**Daily automatic publishing (3 Shorts/day):** the Windows Task Scheduler runner generates topics and requests publishing at **07:00, 11:00, and 18:00 Vietnam time**. See [V1_3_GUIDE.md](https://github.com/hn07/AI-YouTube-Automation/blob/feature/v1.3-daily-auto-scheduler/V1_3_GUIDE.md). Run `RUN_DAILY_AUTOMATION.bat` manually first, then install `INSTALL_DAILY_TASK.bat` only after verifying the test run.\n\n""")
     checks = {
         "Python virtual environment": (ROOT/"venv"/"Scripts"/"python.exe").exists(),
         "FFmpeg available": __import__("shutil").which("ffmpeg") is not None or (ROOT/"tools"/"ffmpeg"/"bin"/"ffmpeg.exe").exists(),
