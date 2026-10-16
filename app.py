@@ -109,9 +109,14 @@ with tab_upload:
                     local_dt, privacy="private"
                 )
             record_upload(video_path, response.get("id", ""), title, local_dt.isoformat())
-            st.success("Upload accepted by YouTube. Verify the status and schedule in YouTube Studio.")
-            st.write({"video_id": response.get("id"), "scheduled_time": local_dt.isoformat(),
-                      "privacy_requested": "private with scheduled publish time"})
+            actual_status = response.get("status", {})
+            st.success("YouTube API accepted the upload. Check the returned status below.")
+            st.write({"video_id": response.get("id"), "scheduled_time_requested": local_dt.isoformat(),
+                      "api_privacy_status": actual_status.get("privacyStatus", "not returned"),
+                      "api_publish_at": actual_status.get("publishAt", "not returned"),
+                      "api_upload_status": actual_status.get("uploadStatus", "not returned")})
+            if not actual_status.get("publishAt"):
+                st.warning("YouTube response did not confirm publishAt. Do not assume it is scheduled; open YouTube Studio and verify the Visibility/Schedule fields.")
             st.link_button("Open YouTube Studio", "https://studio.youtube.com/")
             log.info("Uploaded video id=%s", response.get("id"))
         except Exception as e:
@@ -120,13 +125,11 @@ with tab_upload:
             st.caption("No quota or access restrictions are bypassed. Check OAuth setup and logs/app.log.")
 
 with tab_batch:
-    st.subheader("Batch queue — V1.1")
-    st.write("Add one topic per line, or upload a CSV with a column named topic. Videos are rendered one by one; nothing is uploaded automatically.")
+    st.subheader("Batch queue — V1.2")
+    st.write("Add one topic per line, or upload a CSV with a column named topic. Videos render sequentially; nothing is uploaded automatically.")
     topics_file = st.file_uploader("Optional topics CSV", type=["csv"], key="batch_topics_csv")
-    topics_text = st.text_area("Topics (one topic per line)", height=150, placeholder="Why do we dream?\\nHow do bees communicate?\\nWhy is the sky blue?")
-    batch_topics = []
-    if topics_text.strip():
-        batch_topics.extend([line.strip() for line in topics_text.splitlines() if line.strip()])
+    topics_text = st.text_area("Topics (one topic per line)", height=150, placeholder="Why do we dream?\nHow do bees communicate?\nWhy is the sky blue?")
+    batch_topics = [line.strip() for line in topics_text.splitlines() if line.strip()]
     if topics_file is not None:
         try:
             import csv, io
@@ -137,52 +140,63 @@ with tab_batch:
                 st.error("CSV cần có cột tên topic (chữ thường).")
         except Exception as e:
             st.error(f"Không đọc được CSV: {e}")
-    # Remove duplicate topics while preserving their order.
     batch_topics = list(dict.fromkeys(batch_topics))
     st.caption(f"{len(batch_topics)} chủ đề trong hàng đợi sau khi loại trùng.")
-    max_batch = st.slider("Số video tối đa mỗi lần chạy", min_value=1, max_value=10, value=min(3, max(1, len(batch_topics))))
+    max_batch = st.slider("Số video tối đa mỗi lần chạy", min_value=1, max_value=10, value=min(3, max(1, len(batch_topics))), key="v12_batch_limit")
+
+    def run_batch_items(items, action_label):
+        import csv
+        manifest_path = ROOT / "output" / "batch_manifest.csv"
+        results = []
+        progress = st.progress(0)
+        for idx, batch_topic in enumerate(items, start=1):
+            slug = re.sub(r"[^a-zA-Z0-9_-]+", "_", batch_topic).strip("_")[:45] or "short"
+            job_dir = ROOT / "output" / (datetime.now().strftime("%Y%m%d_%H%M%S") + f"_batch{idx}_" + slug)
+            try:
+                batch_script = generate_script(batch_topic, style)
+                with st.spinner(f"{action_label} {idx}/{len(items)}: {batch_topic}"):
+                    mp4, duration = render_short(batch_topic, batch_script, job_dir, voice)
+                results.append({"topic": batch_topic, "status": "READY_FOR_REVIEW", "video_path": str(mp4),
+                                "duration_seconds": round(duration, 2), "created_at": datetime.now().isoformat(timespec="seconds"), "video_id": ""})
+                log.info("V1.2 batch created topic=%s path=%s", batch_topic, mp4)
+            except Exception as e:
+                results.append({"topic": batch_topic, "status": "FAILED", "video_path": "",
+                                "duration_seconds": "", "created_at": datetime.now().isoformat(timespec="seconds"), "video_id": ""})
+                log.exception("V1.2 batch creation failed for topic=%s: %s", batch_topic, e)
+            progress.progress(idx / max(1, len(items)))
+        write_header = not manifest_path.exists()
+        with manifest_path.open("a", newline="", encoding="utf-8-sig") as mf:
+            writer = csv.DictWriter(mf, fieldnames=["topic","status","video_path","duration_seconds","created_at","video_id"])
+            if write_header:
+                writer.writeheader()
+            writer.writerows(results)
+        ready = sum(1 for x in results if x["status"] == "READY_FOR_REVIEW")
+        failed = sum(1 for x in results if x["status"] == "FAILED")
+        st.success(f"Batch complete: {ready} ready, {failed} failed. Failed items are logged and can be retried below.")
+        st.dataframe(results, use_container_width=True)
+        st.info("Batch chỉ tạo MP4, không tự tải lên YouTube. Hãy xem lại video trước khi đăng.")
+
     if st.button("Build batch videos", type="primary", use_container_width=True):
         if not batch_topics:
             st.error("Hãy nhập chủ đề hoặc tải lên CSV.")
         elif len(batch_topics) > 50:
             st.error("Tối đa 50 chủ đề trong danh sách; hãy chia thành nhiều đợt.")
         else:
-            import csv, json
-            from datetime import datetime
-            manifest_path = ROOT / "output" / "batch_manifest.csv"
-            results = []
-            selected_topics = batch_topics[:max_batch]
-            progress = st.progress(0)
-            for idx, batch_topic in enumerate(selected_topics, start=1):
-                slug = re.sub(r"[^a-zA-Z0-9_-]+", "_", batch_topic).strip("_")[:45] or "short"
-                job_dir = ROOT / "output" / (datetime.now().strftime("%Y%m%d_%H%M%S") + f"_batch{idx}_" + slug)
-                try:
-                    batch_script = generate_script(batch_topic, style)
-                    with st.spinner(f"Creating {idx}/{len(selected_topics)}: {batch_topic}"):
-                        mp4, duration = render_short(batch_topic, batch_script, job_dir, voice)
-                    results.append({"topic": batch_topic, "status": "READY_FOR_REVIEW", "video_path": str(mp4), "duration_seconds": round(duration, 2), "created_at": datetime.now().isoformat(timespec="seconds"), "video_id": ""})
-                    log.info("Batch created topic=%s path=%s", batch_topic, mp4)
-                except Exception as e:
-                    results.append({"topic": batch_topic, "status": "FAILED", "video_path": "", "duration_seconds": "", "created_at": datetime.now().isoformat(timespec="seconds"), "video_id": ""})
-                    log.exception("Batch creation failed for topic=%s", batch_topic)
-                progress.progress(idx / len(selected_topics))
-            write_header = not manifest_path.exists()
-            with manifest_path.open("a", newline="", encoding="utf-8-sig") as mf:
-                writer = csv.DictWriter(mf, fieldnames=["topic","status","video_path","duration_seconds","created_at","video_id"])
-                if write_header:
-                    writer.writeheader()
-                writer.writerows(results)
-            st.success(f"Batch complete: {sum(1 for x in results if x['status']=='READY_FOR_REVIEW')} ready, {sum(1 for x in results if x['status']=='FAILED')} failed.")
-            st.dataframe(results, use_container_width=True)
-            st.info("Các video chỉ được tạo và lưu vào output; chưa video nào được tự động tải lên. Mở tab Upload / Schedule để duyệt và đăng từng video.")
-            st.download_button("Download batch results CSV", data=manifest_path.read_bytes(), file_name="batch_manifest.csv", mime="text/csv")
+            run_batch_items(batch_topics[:max_batch], "Creating")
+
     manifest_path = ROOT / "output" / "batch_manifest.csv"
     if manifest_path.exists():
-        st.markdown("**Batch history**")
+        st.markdown("**Batch history and recovery**")
         try:
             import pandas as pd
-            st.dataframe(pd.read_csv(manifest_path), use_container_width=True)
-            st.download_button("Download full batch history", data=manifest_path.read_bytes(), file_name="batch_manifest.csv", mime="text/csv", key="download_batch_history")
+            history = pd.read_csv(manifest_path).fillna("")
+            st.dataframe(history, use_container_width=True)
+            failed_topics = list(dict.fromkeys(history.loc[history["status"] == "FAILED", "topic"].astype(str).tolist()))
+            failed_topics = [x for x in failed_topics if x.strip()]
+            st.caption(f"{len(failed_topics)} unique failed topic(s) available for retry.")
+            if st.button("Retry failed topics", disabled=not failed_topics, use_container_width=True):
+                run_batch_items(failed_topics[:max_batch], "Retrying")
+            st.download_button("Download full batch history", data=manifest_path.read_bytes(), file_name="batch_manifest.csv", mime="text/csv", key="download_batch_history_v12")
         except Exception as e:
             st.warning(f"Could not display batch history: {e}")
 
