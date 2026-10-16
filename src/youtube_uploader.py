@@ -96,9 +96,24 @@ def upload_and_schedule(video_path: str, title: str, description: str, tags: lis
 
     actual_publish_at = verified_status.get("publishAt")
     actual_privacy = verified_status.get("privacyStatus")
-    verified = bool(actual_publish_at and actual_privacy == "private")
+    publish_time_matches = False
+    if actual_publish_at:
+        try:
+            actual_dt = datetime.fromisoformat(actual_publish_at.replace("Z", "+00:00"))
+            requested_dt = datetime.fromisoformat(publish_utc.replace("Z", "+00:00"))
+            publish_time_matches = abs((actual_dt - requested_dt).total_seconds()) <= 60
+        except (TypeError, ValueError):
+            publish_time_matches = False
+    verified = bool(actual_publish_at and actual_privacy == "private" and publish_time_matches)
     if not actual_publish_at and not verification_error:
         verification_error = "YouTube did not return publishAt; check YouTube Studio manually."
+    elif actual_publish_at and not publish_time_matches:
+        verification_error = (
+            f"YouTube publishAt does not match requested time: requested={publish_utc}, "
+            f"actual={actual_publish_at}. Check YouTube Studio manually."
+        )
+    elif actual_publish_at and actual_privacy != "private":
+        verification_error = f"Expected privacyStatus=private but API returned {actual_privacy!r}."
     response["status"] = verified_status
     response["schedule_verified"] = verified
     response["verification_error"] = verification_error
