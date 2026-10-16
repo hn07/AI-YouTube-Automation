@@ -25,7 +25,7 @@ git switch -c feature/v1.3-daily-auto-scheduler --track origin/feature/v1.3-dail
 
 Run the existing syntax/dependency check:
 ```bat
-TEST_V1_2.bat
+TEST_V1_3.bat
 ```
 
 Then run `RUN_DAILY_AUTOMATION.bat` manually. It will generate/render/upload three videos and therefore performs real uploads. Run it only when you are ready and the correct YouTube channel is authorized. If OAuth opens a browser, finish consent and rerun if the first attempt did not complete all jobs.
