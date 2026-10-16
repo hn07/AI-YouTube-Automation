@@ -16,8 +16,7 @@ Close the Streamlit app first. Open Command Prompt:
 cd /d D:\MyWorkSpace\AI_YouTube_Automation_V1_1
 git status
 git fetch origin
-git checkout feature/v1.2-reliable-render-upload
-git pull origin feature/v1.2-reliable-render-upload
+git checkout -b feature/v1.2-reliable-render-upload origin/feature/v1.2-reliable-render-upload
 TEST_V1_2.bat
 START_V1.bat
 ```
