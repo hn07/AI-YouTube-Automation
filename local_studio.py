@@ -1,5 +1,5 @@
 from __future__ import annotations
-import os, re, subprocess, sys, zipfile, shutil
+import os, re, subprocess, sys, zipfile, shutil, json
 from datetime import datetime, date, time, timedelta, timezone
 from pathlib import Path
 import streamlit as st
@@ -17,7 +17,29 @@ with st.sidebar:
     kind = st.radio("Loại video", ["Shorts dọc 9:16", "Video dài ngang 16:9"])
     voice = st.selectbox("Giọng đọc tiếng Anh", VOICES)
     api_key = st.text_input("OpenRouter API key (không bắt buộc)", type="password",
-        help="Dùng thử model miễn phí nếu tài khoản được cấp quyền. Khóa chỉ dùng trong phiên này, không lưu vào tệp.")
+        help="Dán toàn bộ khóa riêng tư bắt đầu bằng sk-or-v1-. Không chia sẻ khóa này.")
+    ai_model = st.selectbox("Mô hình tạo kịch bản", [
+        "openrouter/free",
+        "nvidia/nemotron-3-ultra-253b-a22b:free",
+        "google/gemma-3-27b-it:free",
+    ], help="Ưu tiên openrouter/free để tự chọn một model miễn phí đang hoạt động. Danh sách miễn phí có thể thay đổi.")
+    if st.button("🔌 Kiểm tra API key và model", use_container_width=True):
+        if not api_key.strip():
+            st.error("Hãy nhập API key trước.")
+        else:
+            try:
+                import requests as _requests
+                _res = _requests.post("https://openrouter.ai/api/v1/chat/completions",
+                    headers={"Authorization":"Bearer "+api_key.strip(),"Content-Type":"application/json",
+                             "HTTP-Referer":"http://localhost","X-Title":"Nham YouTube Studio Local"},
+                    json={"model":ai_model,"messages":[{"role":"user","content":"Reply with exactly: API OK"}],"max_tokens":20},
+                    timeout=45)
+                if _res.ok:
+                    st.success("API hoạt động: "+str(_res.json().get("choices",[{}])[0].get("message",{}).get("content","OK")))
+                else:
+                    st.error(f"OpenRouter HTTP {_res.status_code}: "+str((_res.text or "")[:1000]))
+            except Exception as _exc:
+                st.error("Không kết nối được OpenRouter: "+str(_exc))
     st.caption("Không có API key: dùng kịch bản mẫu miễn phí, không phải mô hình AI.")
 topic = st.text_input("Chủ đề video", placeholder="Ví dụ: Strange Creatures of the Deep Ocean")
 create = st.button("✨ Tạo kịch bản và dựng video", type="primary", use_container_width=True)
@@ -44,7 +66,7 @@ def fallback_script(topic: str, long_form: bool) -> str:
     ]
     return "\n\n".join(f"{h}. {body}" for h, body in sections)
 
-def generate_ai_script(topic: str, long_form: bool, key: str) -> str:
+def generate_ai_script(topic: str, long_form: bool, key: str, model: str) -> str:
     import requests
     target = "700–1000" if long_form else "110–150"
     prompt = ("Write an engaging English YouTube narration about this topic. Target " + target +
@@ -53,9 +75,12 @@ def generate_ai_script(topic: str, long_form: bool, key: str) -> str:
     response = requests.post("https://openrouter.ai/api/v1/chat/completions",
       headers={"Authorization": "Bearer " + key, "Content-Type": "application/json",
       "HTTP-Referer": "http://localhost", "X-Title": "Nham YouTube Studio Local"},
-      json={"model":"meta-llama/llama-3.3-70b-instruct:free",
+      json={"model":model,
       "messages":[{"role":"user","content":prompt}],"temperature":0.7}, timeout=90)
-    response.raise_for_status()
+    if not response.ok:
+        detail = response.text[:1200]
+        raise RuntimeError(f"OpenRouter HTTP {response.status_code}: {detail}")
+
     script = response.json()["choices"][0]["message"]["content"].strip()
     if len(script.split()) < (450 if long_form else 60):
         raise ValueError("AI trả về kịch bản quá ngắn.")
@@ -79,10 +104,11 @@ if create:
         source = "Bộ tạo kịch bản mẫu miễn phí (không phải AI)"
         if api_key.strip():
             try:
-                script = generate_ai_script(topic.strip(), long_form, api_key.strip())
-                source = "OpenRouter model miễn phí nếu còn khả dụng"
+                script = generate_ai_script(topic.strip(), long_form, api_key.strip(), ai_model)
+                source = "OpenRouter: "+ai_model
             except Exception as exc:
-                st.warning(f"Không gọi được AI miễn phí: {exc}. Đã chuyển sang kịch bản mẫu.")
+                st.error(f"Không gọi được AI: {exc}")
+                st.stop()
                 script = fallback_script(topic.strip(), long_form)
         else:
             script = fallback_script(topic.strip(), long_form)
@@ -127,13 +153,28 @@ if create:
 else:
     st.subheader("Cách dùng")
     st.markdown("1. Nhập chủ đề.\\n2. Chọn Shorts hoặc video dài ở thanh bên.\\n3. Chọn giọng đọc.\\n4. (Không bắt buộc) nhập API key từ dịch vụ có model miễn phí.\\n5. Bấm **Tạo kịch bản và dựng video** rồi chờ hoàn tất.\\n6. Tải MP4 hoặc ZIP về máy.")
-    st.warning("Không có API key thì ứng dụng dùng kịch bản mẫu, không phải AI và nội dung có thể chung chung. Giọng đọc và tìm ảnh cần Internet.")
+    st.warning("Không có API key thì ứng dụng dùng kịch bản mẫu, không phải AI. Nếu API lỗi, app sẽ hiển thị nguyên nhân và dừng thay vì âm thầm tạo kịch bản mẫu.")
 st.divider()
 st.header("🗓️ Lịch đăng YouTube")
 st.markdown("Chọn video đã dựng, nhập thông tin và thời điểm đăng. Ứng dụng **không tự đăng nền**: video chỉ được tải lên và lên lịch sau khi bạn đánh dấu xác nhận và bấm nút bên dưới.")
 client_file = ROOT / "client_secret.json"
-if not client_file.exists():
-    st.warning("Để bật chức năng này, hãy tải OAuth Client JSON từ Google Cloud Console (YouTube Data API v3) và đặt tên client_secret.json trong thư mục ứng dụng. Không gửi tệp này cho người khác.")
+with st.expander("⚙️ Thiết lập Google OAuth (làm một lần)", expanded=not client_file.exists()):
+    st.markdown("1. Mở Google Cloud Console, tạo/chọn project và bật **YouTube Data API v3**.\n2. Cấu hình OAuth consent screen; nếu ở chế độ Testing, thêm tài khoản Google vào Test users.\n3. Tạo OAuth Client ID loại **Desktop app** và tải JSON.\n4. Chọn tệp JSON ở dưới rồi lưu cấu hình cục bộ. Không tải tệp này lên GitHub.")
+    oauth_upload = st.file_uploader("Chọn OAuth Client JSON đã tải từ Google Cloud", type=["json"], key="oauth_client_upload")
+    if oauth_upload is not None:
+        try:
+            parsed = json.loads(oauth_upload.getvalue().decode("utf-8"))
+            if not isinstance(parsed, dict) or not (parsed.get("installed") or parsed.get("web")):
+                raise ValueError("JSON không giống OAuth client của Google (thiếu installed/web).")
+            if st.button("💾 Lưu cấu hình OAuth trên máy này", key="save_oauth_config"):
+                client_file.write_text(json.dumps(parsed, indent=2), encoding="utf-8")
+                st.success("Đã lưu client_secret.json cục bộ. Tải lại trang nếu trạng thái chưa đổi.")
+        except Exception as exc:
+            st.error("Tệp JSON không hợp lệ: "+str(exc))
+    if client_file.exists():
+        st.success("Đã tìm thấy client_secret.json.")
+    else:
+        st.info("Chưa có OAuth JSON. Chức năng đăng lịch chỉ hoạt động sau khi bạn thêm tệp này.")
 video_candidates = sorted(OUTPUT_ROOT.glob("**/*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
 if not video_candidates:
     st.caption("Chưa có MP4 nào. Hãy tạo video trước.")
