@@ -3,49 +3,95 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI YouTube Automation — Control Center</title>
+<meta name="theme-color" content="#101827">
+<title>AI YouTube Automation — Bảng điều khiển</title>
 <style>
-:root{color-scheme:light dark;--accent:#635bff;--panel:color-mix(in srgb,Canvas 94%,#888 6%);--line:color-mix(in srgb,CanvasText 16%,transparent)}
-*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;background:Canvas;color:CanvasText}
-header{padding:34px max(22px,calc((100% - 1050px)/2));background:linear-gradient(120deg,#171b3a,#34306b);color:white}
-header h1{margin:0 0 8px;font-size:clamp(25px,4vw,38px)}header p{margin:0;color:#e2e4ff}
-main{max-width:1050px;margin:24px auto;padding:0 18px 50px}.notice{border:1px solid var(--line);padding:14px 16px;border-radius:12px;margin-bottom:20px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:14px}.card{border:1px solid var(--line);background:var(--panel);border-radius:15px;padding:19px}.card h2{font-size:19px;margin:0 0 8px}.card p{margin:0 0 14px;color:color-mix(in srgb,CanvasText 78%,transparent)}
-a.btn{display:inline-block;text-decoration:none;background:var(--accent);color:white;padding:10px 13px;border-radius:9px;font-weight:650}a.link{color:inherit;text-decoration:underline;text-underline-offset:3px}
-ol{padding-left:22px}.tag{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:3px 9px;font-size:12px}
-footer{margin-top:26px;color:color-mix(in srgb,CanvasText 68%,transparent);font-size:13px}
+:root{color-scheme:light;--ink:#172033;--muted:#5d687b;--line:#dce2ec;--bg:#f4f7fb;--card:#fff;--blue:#2857d9;--blue-dark:#1e43ac;--green:#16794b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:#101827;color:#fff;padding:30px 20px}
+.wrap{max-width:1000px;margin:0 auto}
+header h1{font-size:clamp(26px,4vw,36px);line-height:1.2;margin:0 0 10px}
+header p{margin:0;color:#d7dfef}
+main{max-width:1000px;margin:24px auto;padding:0 18px 44px}
+.notice{background:#fff8e7;border:1px solid #efd89a;border-radius:12px;padding:14px 16px;margin-bottom:22px}
+h2{font-size:21px;margin:26px 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:19px;display:flex;flex-direction:column;align-items:flex-start;min-height:215px}
+.card h3{font-size:19px;line-height:1.3;margin:0 0 8px}
+.card p{color:var(--muted);margin:0 0 17px;flex:1}
+.btn{display:inline-block;background:var(--blue);color:#fff;text-decoration:none;font-weight:700;border-radius:9px;padding:11px 14px}
+.btn:hover{background:var(--blue-dark)}
+.btn.secondary{background:#e9efff;color:#203f9b}
+.btn.secondary:hover{background:#dce6ff}
+.tag{display:inline-block;font-size:12px;font-weight:700;color:var(--green);background:#e5f6ed;border-radius:99px;padding:4px 9px;margin-bottom:10px}
+.steps{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px}
+ol{padding-left:22px;margin:8px 0}li{margin:8px 0}
+a.textlink{color:#244fc4;text-underline-offset:3px}
+footer{color:var(--muted);font-size:13px;margin-top:22px;padding-bottom:12px}
+@media(max-width:560px){header{padding:25px 18px}.card{min-height:0}.btn{width:100%;text-align:center}}
 </style>
 </head>
 <body>
-<header><h1>AI YouTube Automation</h1><p>Trung tâm thao tác bằng giao diện GitHub — không cần mở CMD cho các bước được hỗ trợ.</p></header>
+<header><div class="wrap"><h1>AI YouTube Automation</h1><p>Bảng điều khiển tiếng Việt — chọn việc cần làm, mở GitHub và chạy từng bước.</p></div></header>
 <main>
-<div class="notice"><strong>Lưu ý quan trọng:</strong> GitHub Pages chỉ hiển thị giao diện tĩnh, nên nút không thể tự khởi chạy workflow. Bấm “Mở form tạo gói”, sau đó tại GitHub Actions hãy chọn nhánh <code>main</code>, bấm <strong>Run workflow</strong>, điền đủ các trường và bấm nút <strong>Run workflow</strong> màu xanh. Trang này không tự xác minh sự thật, không tự phê duyệt và không đăng video.</div>
+<div class="notice"><strong>Quan trọng:</strong> Trang này là bảng điều khiển và đường dẫn nhanh. Khi bấm nút, GitHub sẽ mở trang workflow; bạn vẫn cần chọn <strong>Run workflow</strong>, nhập thông tin và xác nhận chạy. Tất cả các lựa chọn bên dưới chỉ tạo bản nháp. Không có thao tác tự tải video lên, lên lịch hoặc đăng YouTube.</div>
+
+<h2>🎬 Tạo video</h2>
 <div class="grid">
-<section class="card"><h2>1. Tạo gói kịch bản</h2><p>Mở form GitHub Actions, nhập chủ đề và dán kịch bản. Kết quả là gói nháp và checklist bằng chứng để tải xuống.</p><a class="btn" href="https://github.com/hn07/AI-YouTube-Automation/actions/workflows/web-control-center.yml">Mở GitHub Actions → Run workflow</a></section>
-<section class="card"><h2>2. Xem các phiên bản</h2><p>Mỗi nhánh chứa một bước phát triển. Có thể mở code, xem thay đổi và so sánh trực tiếp trên GitHub.</p><a class="btn" href="https://github.com/hn07/AI-YouTube-Automation/branches/all">Xem branches</a></section>
-<section class="card"><h2>3. Kiểm tra lần chạy</h2><p>Xem lịch sử chạy, log, trạng thái thành công/thất bại và tải artifact ngay trên giao diện GitHub.</p><a class="btn" href="https://github.com/hn07/AI-YouTube-Automation/actions">Mở Actions</a></section>
-<section class="card"><h2>4. Theo dõi công việc</h2><p>Dùng Issues để ghi nhận lỗi, việc cần làm và tiến độ mà không phải quản lý bằng các lệnh CMD.</p><a class="btn" href="https://github.com/hn07/AI-YouTube-Automation/issues">Mở Issues</a></section>
+<section class="card">
+<span class="tag">VIDEO DỌC · 9:16</span>
+<h3>1. Tạo YouTube Shorts</h3>
+<p>Dựng video ngắn theo workflow hiện có. Sau khi chạy xong, tải artifact để xem lại video và các tệp đi kèm.</p>
+<a class="btn" href="https://github.com/hn07/AI-YouTube-Automation/actions/workflows/render-short-draft.yml">Mở form tạo Shorts →</a>
+</section>
+<section class="card">
+<span class="tag">VIDEO NGANG · 16:9</span>
+<h3>2. Tạo video dài 5–10 phút</h3>
+<p>Dán kịch bản tiếng Anh, chọn giọng đọc và tạo bản dựng video ngang để kiểm tra trước khi sử dụng.</p>
+<a class="btn" href="https://github.com/hn07/AI-YouTube-Automation/actions/workflows/render-long-draft.yml">Mở form tạo video dài →</a>
+</section>
+<section class="card">
+<span class="tag">KỊCH BẢN & NGUỒN</span>
+<h3>3. Tạo gói rà soát kịch bản</h3>
+<p>Lưu kịch bản cùng thông tin công việc và checklist rà soát bằng chứng. Đây không phải video đã render.</p>
+<a class="btn" href="https://github.com/hn07/AI-YouTube-Automation/actions/workflows/web-control-center.yml">Mở form rà soát →</a>
+</section>
 </div>
-<h2>Quy trình thao tác</h2>
+
+<h2>📂 Theo dõi kết quả</h2>
+<div class="grid">
+<section class="card">
+<h3>Lịch sử chạy & tải video</h3>
+<p>Xem lượt chạy mới nhất, trạng thái thành công/thất bại, log và mục Artifacts để tải tệp.</p>
+<a class="btn secondary" href="https://github.com/hn07/AI-YouTube-Automation/actions">Mở lịch sử chạy →</a>
+</section>
+<section class="card">
+<h3>Hướng dẫn sử dụng</h3>
+<p>Xem hướng dẫn chi tiết cho workflow video dài và bảng điều khiển.</p>
+<a class="btn secondary" href="https://github.com/hn07/AI-YouTube-Automation/blob/main/LONG_FORM_RENDERER_GUIDE.md">Hướng dẫn video dài →</a>
+</section>
+<section class="card">
+<h3>Mã nguồn dự án</h3>
+<p>Mở repository để xem tệp và các nhánh phát triển. Không cần dùng CMD cho các thao tác trên trang này.</p>
+<a class="btn secondary" href="https://github.com/hn07/AI-YouTube-Automation">Mở repository →</a>
+</section>
+</div>
+
+<h2>🧭 Cách dùng nhanh</h2>
+<div class="steps">
 <ol>
-<li>Bấm <strong>Mở GitHub Actions → Run workflow</strong> ở phía trên. Đây là bước mở trang workflow, chưa chạy job.</li>
-<li>Trong GitHub, chọn nhánh <code>main</code> ở mục <strong>Use workflow from</strong>, rồi bấm <strong>Run workflow</strong> để mở/hiển thị biểu mẫu.</li>
-<li>Điền đủ Topic, Script text, Voice và tùy chọn checklist; sau đó bấm nút xanh <strong>Run workflow</strong> trong biểu mẫu. Nếu không thấy nút này, kiểm tra tab Actions đã được bật và bạn có quyền chạy Actions trong repository.</li>
-<li>Mở lần chạy vừa tạo, tải artifact <code>youtube-shorts-review-package</code>.</li>
-<li>Kiểm tra claim, nguồn dẫn chứng, bản quyền tư liệu và nội dung. Các claim khởi tạo đều là <code>UNREVIEWED</code>.</li>
-<li>Việc render video vẫn phụ thuộc vào pipeline hiện có và các cổng kiểm tra. Không có bước upload/publish trong workflow này.</li>
+<li>Chọn loại video ở phần <strong>Tạo video</strong>.</li>
+<li>Trên GitHub, chọn nhánh <code>main</code> nếu có mục chọn nhánh.</li>
+<li>Nhấn <strong>Run workflow</strong>, nhập chủ đề và dán kịch bản đầy đủ; chọn giọng đọc nếu được yêu cầu.</li>
+<li>Nhấn nút xanh <strong>Run workflow</strong> để xác nhận. Không đóng lượt chạy nếu muốn theo dõi tiến độ.</li>
+<li>Khi hoàn tất, mở lượt chạy đó, tìm mục <strong>Artifacts</strong> và tải gói kết quả về máy.</li>
+<li>Mở video và kiểm tra hình ảnh, giọng đọc, phụ đề, nguồn ảnh và quyền sử dụng trước khi tự quyết định bước tiếp theo.</li>
 </ol>
-<h2>Các nhánh phát triển hiện có</h2>
-<ul>
-<li><a class="link" href="https://github.com/hn07/AI-YouTube-Automation/tree/feature/v1.1-batch-workflow">V1.1 — Batch workflow</a></li>
-<li><a class="link" href="https://github.com/hn07/AI-YouTube-Automation/tree/feature/v1.2-reliable-render-upload">V1.2 — Reliable render/upload</a></li>
-<li><a class="link" href="https://github.com/hn07/AI-YouTube-Automation/tree/feature/v1.7-video-dashboard">V1.7 — Video dashboard</a></li>
-<li><a class="link" href="https://github.com/hn07/AI-YouTube-Automation/tree/feature/v2.0-production-pipeline">V2.0 — Production pipeline</a></li>
-<li><a class="link" href="https://github.com/hn07/AI-YouTube-Automation/tree/feature/v2.2-fact-check-sources">V2.2 — Fact-check evidence register</a></li>
-<li><a class="link" href="https://github.com/hn07/AI-YouTube-Automation/tree/feature/v2.3-video-rendering-integration">V2.3 — Video rendering</a></li>
-<li><a class="link" href="https://github.com/hn07/AI-YouTube-Automation/tree/feature/v2.4-final-video-quality-gate">V2.4 — Final video quality gate</a></li>
-<li><a class="link" href="https://github.com/hn07/AI-YouTube-Automation/tree/feature/v2.5-one-click-auto-production">V2.5 — One-click production gates</a></li>
-</ul>
-<footer>Control Center v1.0 · Draft-only workflow · No secrets are requested or stored by this page. Never commit YouTube OAuth credentials, tokens, API keys, or private output files.</footer>
+</div>
+<footer>
+Bảng điều khiển phiên bản 1.1 · Ưu tiên công cụ miễn phí · Không yêu cầu API key trên trang này. Không nhập mật khẩu, token, khóa API hoặc thông tin OAuth vào biểu mẫu kịch bản.
+</footer>
 </main>
-</body></html>
+</body>
+</html>
