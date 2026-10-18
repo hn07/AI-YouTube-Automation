@@ -48,9 +48,25 @@ def init_db():
 
 def already_done(day, slot):
     with sqlite3.connect(STATE_DB) as db:
-        row = db.execute("SELECT status, video_id FROM jobs WHERE publish_date=? AND slot=?",
+        row = db.execute("SELECT status, video_id, updated_at FROM jobs WHERE publish_date=? AND slot=?",
                          (day.isoformat(), slot)).fetchone()
-    return row if row and row[0] in ("uploaded", "processing") else None
+    if not row:
+        return None
+    if row[0] == "uploaded":
+        return row[:2]
+    if row[0] == "processing":
+        # A process killed or crashed can leave a stale lock. Permit retry after 3 hours.
+        try:
+            updated = datetime.fromisoformat(row[2])
+            if updated.tzinfo is None:
+                updated = updated.replace(tzinfo=LOCAL_TZ)
+            age = datetime.now(LOCAL_TZ) - updated.astimezone(LOCAL_TZ)
+            if age < timedelta(hours=3):
+                return row[:2]
+            log(f"Phát hiện job processing cũ ({age}); cho phép chạy lại slot {slot}.")
+        except (ValueError, TypeError):
+            log(f"Không đọc được thời gian trạng thái processing cũ; cho phép thử lại slot {slot}.")
+    return None
 
 def record(day, slot, topic, status, video_id=None, details=""):
     with sqlite3.connect(STATE_DB) as db:
@@ -83,14 +99,37 @@ def generate_script(topic, long_form, model):
         "and a memorable ending. Do not invent statistics, quotes, sources, or facts. "
         "Avoid repetitive filler. Return narration only."
     )
-    response = requests.post("https://openrouter.ai/api/v1/chat/completions",
-        headers={"Authorization": "Bearer " + key, "Content-Type": "application/json",
-                 "HTTP-Referer": "http://localhost", "X-Title": "AI-YouTube-Automation"},
-        json={"model": model, "messages": [{"role": "user", "content": prompt}],
-              "temperature": 0.7, "max_tokens": 2200}, timeout=120)
-    if not response.ok:
-        raise RuntimeError(f"OpenRouter HTTP {response.status_code}: {response.text[:800]}")
-    script = response.json()["choices"][0]["message"]["content"].strip()
+    payload = {"model": model, "messages": [{"role": "user", "content": prompt}],
+               "temperature": 0.7, "max_tokens": 1600 if long_form else 700}
+    response = None
+    last_error = None
+    for attempt in range(1, 3):
+        try:
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={"Authorization": "Bearer " + key, "Content-Type": "application/json",
+                         "HTTP-Referer": "http://localhost", "X-Title": "AI-YouTube-Automation"},
+                json=payload, timeout=(10, 60))
+            if response.ok:
+                break
+            detail = response.text[:500].replace("\\n", " ")
+            if response.status_code not in (408, 429, 500, 502, 503, 504):
+                raise RuntimeError(f"OpenRouter HTTP {response.status_code}: {detail}")
+            last_error = RuntimeError(f"OpenRouter HTTP {response.status_code}: {detail}")
+        except (requests.Timeout, requests.ConnectionError) as exc:
+            last_error = exc
+        if attempt < 2:
+            log(f"OpenRouter tạm lỗi (lần {attempt}/2); thử lại sau 2 giây.")
+            time.sleep(2)
+    if response is None or not response.ok:
+        raise RuntimeError(f"OpenRouter không trả kết quả sau 2 lần thử: {last_error}")
+    try:
+        data = response.json()
+        script = (data["choices"][0]["message"].get("content") or "").strip()
+    except (ValueError, KeyError, IndexError, TypeError) as exc:
+        raise RuntimeError(f"OpenRouter trả dữ liệu không đúng định dạng: {exc}") from exc
+    if not script:
+        raise RuntimeError("OpenRouter trả về kịch bản rỗng.")
     minimum = 450 if long_form else 70
     if len(script.split()) < minimum:
         raise RuntimeError(f"Kịch bản AI quá ngắn ({len(script.split())} từ); không tự đăng.")
@@ -142,7 +181,7 @@ def run_slot(slot, force_dry_run=False):
     now = datetime.now(LOCAL_TZ)
     target_day = now.date()
     publish_dt = datetime.combine(target_day, datetime.strptime(slot, "%H:%M").time(), tzinfo=LOCAL_TZ)
-    if publish_dt <= now + timedelta(minutes=15):
+    if not force_dry_run and publish_dt <= now + timedelta(minutes=15):
         raise RuntimeError(f"Đã quá sát giờ đăng {slot}; bỏ qua để tránh đặt lịch sai. Chạy tác vụ chuẩn bị sớm hơn.")
     previous = already_done(target_day, slot)
     if previous:
@@ -151,15 +190,19 @@ def run_slot(slot, force_dry_run=False):
     topic = choose_topic(target_day, slot)
     long_form = item["format"] == "long"
     log(f"Bắt đầu slot={slot}, format={item['format']}, topic={topic!r}.")
-    record(target_day, slot, topic, "processing", details="Rendering started")
+    record(target_day, slot, topic, "processing", details="Starting job")
     job_name = datetime.now(LOCAL_TZ).strftime("%Y%m%d_%H%M%S") + "_" + re.sub(r"[^A-Za-z0-9_-]+", "_", topic)[:36]
     job = OUTPUT_ROOT / job_name
-    job.mkdir(parents=True, exist_ok=False)
     try:
+        OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
+        job.mkdir(parents=True, exist_ok=False)
+        record(target_day, slot, topic, "processing", details="Generating script via OpenRouter")
         script = generate_script(topic, long_form, config.get("openrouter_model", "openrouter/free"))
         (job / "script.txt").write_text(script + "\n", encoding="utf-8")
         (job / "topic.txt").write_text(topic + "\n", encoding="utf-8")
         renderer = ROOT / "src" / ("web_long_renderer.py" if long_form else "web_short_renderer.py")
+        if not renderer.is_file():
+            raise RuntimeError(f"Không tìm thấy renderer: {renderer}")
         env = os.environ.copy()
         env.update({"TOPIC": topic, "SCRIPT_TEXT": script,
                     "VOICE": config.get("voice", "en-US-AriaNeural"), "PYTHONIOENCODING": "utf-8"})
@@ -168,8 +211,13 @@ def run_slot(slot, force_dry_run=False):
         if not ffmpeg or not ffprobe:
             raise RuntimeError("Không tìm thấy ffmpeg và ffprobe trong PATH.")
         timeout = int(config.get("max_render_minutes", 90)) * 60
-        result = subprocess.run([sys.executable, str(renderer)], cwd=str(job), env=env,
-            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
+        record(target_day, slot, topic, "processing", details="Rendering video")
+        try:
+            result = subprocess.run([sys.executable, str(renderer)], cwd=str(job), env=env,
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
+        except subprocess.TimeoutExpired as exc:
+            (job / "render.log").write_text("RENDER TIMEOUT: exceeded configured limit.\\n", encoding="utf-8")
+            raise RuntimeError(f"Dựng video vượt quá giới hạn {timeout // 60} phút; xem {job / 'render.log'}") from exc
         (job / "render.log").write_text((result.stdout or "") + "\n--- STDERR ---\n" + (result.stderr or ""), encoding="utf-8")
         if result.returncode:
             raise RuntimeError("Dựng video lỗi; xem local-output/" + job.name + "/render.log")
@@ -188,9 +236,13 @@ def run_slot(slot, force_dry_run=False):
         record(target_day, slot, topic, "uploaded", video_id=video_id,
                details=f"Scheduled for {publish_dt.isoformat()}; file={video}")
         log(f"UPLOAD OK: video_id={video_id}; scheduled={publish_dt.isoformat()}")
+    except KeyboardInterrupt:
+        record(target_day, slot, topic, "failed", details="Cancelled by user with Ctrl+C")
+        log(f"CANCELLED slot={slot}: người dùng dừng bằng Ctrl+C.")
+        raise
     except Exception as exc:
-        record(target_day, slot, topic, "failed", details=str(exc))
-        log(f"FAILED slot={slot}: {exc}")
+        record(target_day, slot, topic, "failed", details=f"{type(exc).__name__}: {exc}")
+        log(f"FAILED slot={slot}: {type(exc).__name__}: {exc}")
         raise
 
 def shutil_which(name):
