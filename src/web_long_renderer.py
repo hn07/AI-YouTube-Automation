@@ -19,8 +19,18 @@ def run(cmd):
     subprocess.run(cmd, check=True)
 
 def font(size, bold=False):
-    p = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    return ImageFont.truetype(p, size) if Path(p).exists() else ImageFont.load_default()
+    candidates = [
+        Path("C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf"),
+        Path("C:/Windows/Fonts/segoeuib.ttf" if bold else "C:/Windows/Fonts/segoeui.ttf"),
+        Path("C:/Windows/Fonts/calibrib.ttf" if bold else "C:/Windows/Fonts/calibri.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+    ]
+    for p in candidates:
+        if p.exists():
+            try: return ImageFont.truetype(str(p), size)
+            except OSError: pass
+    try: return ImageFont.truetype("arialbd.ttf" if bold else "arial.ttf", size)
+    except OSError: return ImageFont.load_default()
 
 def split_sentences(text):
     parts = [x.strip() for x in re.split(r"(?<=[.!?])\s+", text.strip()) if x.strip()]
@@ -131,30 +141,30 @@ def make_scene(sentence, index, total, image_path, topic, output):
     ImageDraw.Draw(overlay).rectangle((50, 45, W-50, H-45), fill=(0,0,0,45))
     im = Image.alpha_composite(im, overlay)
     d = ImageDraw.Draw(im)
-    d.text((90, 55), topic[:90].upper(), font=font(34, True), fill=(145,225,255),
+    d.text((90, 55), topic[:90].upper(), font=font(42, True), fill=(145,225,255),
            stroke_width=2, stroke_fill=(0,0,0))
-    d.rounded_rectangle((80, 600, W-80, 1010), radius=34,
+    d.rounded_rectangle((60, 500, W-60, 1015), radius=38,
                         fill=(0,0,0,198), outline=(115,220,255,235), width=4)
     # Large, high-contrast captions designed for phone and desktop viewing.
-    f = font(62, True)
+    f = font(82, True)
     words = sentence.split()
     lines, line = [], ""
     for word in words:
         candidate = (line + " " + word).strip()
-        if d.textbbox((0,0), candidate, font=f, stroke_width=2)[2] > W-240 and line:
+        if d.textbbox((0,0), candidate, font=f, stroke_width=2)[2] > W-180 and line:
             lines.append(line); line = word
         else:
             line = candidate
     if line: lines.append(line)
-    lines = lines[:4]
+    lines = lines[:5]
     heights = [d.textbbox((0,0), ln, font=f, stroke_width=2)[3] for ln in lines]
-    y = 805 - sum(heights)//2 - (len(lines)-1)*12
+    y = 760 - sum(heights)//2 - (len(lines)-1)*10
     for ln, height in zip(lines, heights):
         width = d.textbbox((0,0), ln, font=f, stroke_width=1)[2]
         d.text(((W-width)//2, y), ln, font=f, fill="white", stroke_width=3, stroke_fill="black")
         y += height + 24
     d.text((90, H-62), f"SCENE {index+1:03d}/{total:03d}  •  LONG-FORM DRAFT",
-           font=font(24), fill=(235,245,250))
+           font=font(32, True), fill=(255,255,255), stroke_width=2, stroke_fill=(0,0,0))
     im.convert("RGB").save(output, quality=92)
 
 async def synthesize(script, voice, path):
