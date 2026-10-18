@@ -1,0 +1,17 @@
+{
+  "timezone": "Asia/Ho_Chi_Minh",
+  "enabled": false,
+  "require_explicit_confirmation": true,
+  "slots": [
+    {"publish_time": "09:00", "prepare_time": "04:00", "format": "shorts"},
+    {"publish_time": "13:00", "prepare_time": "08:00", "format": "long"},
+    {"publish_time": "19:00", "prepare_time": "14:00", "format": "shorts"}
+  ],
+  "openrouter_model": "openrouter/free",
+  "voice": "en-US-AriaNeural",
+  "category_id": "22",
+  "made_for_kids": false,
+  "privacy_status": "private",
+  "max_render_minutes": 90,
+  "max_upload_retries": 2
+}
