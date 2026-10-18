@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI YouTube Automation — Control Center</title>
+<style>
+:root{color-scheme:light dark;--accent:#635bff;--panel:color-mix(in srgb,Canvas 94%,#888 6%);--line:color-mix(in srgb,CanvasText 16%,transparent)}
+*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;background:Canvas;color:CanvasText}
+header{padding:34px max(22px,calc((100% - 1050px)/2));background:linear-gradient(120deg,#171b3a,#34306b);color:white}
+header h1{margin:0 0 8px;font-size:clamp(25px,4vw,38px)}header p{margin:0;color:#e2e4ff}
+main{max-width:1050px;margin:24px auto;padding:0 18px 50px}.notice{border:1px solid var(--line);padding:14px 16px;border-radius:12px;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:14px}.card{border:1px solid var(--line);background:var(--panel);border-radius:15px;padding:19px}.card h2{font-size:19px;margin:0 0 8px}.card p{margin:0 0 14px;color:color-mix(in srgb,CanvasText 78%,transparent)}
+a.btn{display:inline-block;text-decoration:none;background:var(--accent);color:white;padding:10px 13px;border-radius:9px;font-weight:650}a.link{color:inherit;text-decoration:underline;text-underline-offset:3px}
+ol{padding-left:22px}.tag{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:3px 9px;font-size:12px}
+footer{margin-top:26px;color:color-mix(in srgb,CanvasText 68%,transparent);font-size:13px}
+</style>
+</head>
+<body>
+<header><h1>AI YouTube Automation</h1><p>Trung tâm thao tác bằng giao diện GitHub — không cần mở CMD cho các bước được hỗ trợ.</p></header>
+<main>
+<div class="notice"><strong>Trạng thái hiện tại:</strong> V2.5 đang chặn đúng quy tắc vì chưa có hồ sơ phê duyệt và rà soát bằng chứng được ghi nhận đầy đủ. Trang này không tự xác minh sự thật, không tự phê duyệt và không đăng video.</div>
+<div class="grid">
+<section class="card"><h2>1. Tạo gói kịch bản</h2><p>Mở form GitHub Actions, nhập chủ đề và dán kịch bản. Kết quả là gói nháp và checklist bằng chứng để tải xuống.</p><a class="btn" href="../../actions/workflows/web-control-center.yml">Mở form tạo gói</a></section>
+<section class="card"><h2>2. Xem các phiên bản</h2><p>Mỗi nhánh chứa một bước phát triển. Có thể mở code, xem thay đổi và so sánh trực tiếp trên GitHub.</p><a class="btn" href="../../branches/all">Xem branches</a></section>
+<section class="card"><h2>3. Kiểm tra lần chạy</h2><p>Xem lịch sử chạy, log, trạng thái thành công/thất bại và tải artifact ngay trên giao diện GitHub.</p><a class="btn" href="../../actions">Mở Actions</a></section>
+<section class="card"><h2>4. Theo dõi công việc</h2><p>Dùng Issues để ghi nhận lỗi, việc cần làm và tiến độ mà không phải quản lý bằng các lệnh CMD.</p><a class="btn" href="../../issues">Mở Issues</a></section>
+</div>
+<h2>Quy trình thao tác</h2>
+<ol>
+<li>Mở <strong>Actions → Web Control Center - YouTube Shorts → Run workflow</strong>.</li>
+<li>Nhập chủ đề, dán kịch bản đã xem xét, chọn giọng đọc mong muốn rồi chạy workflow.</li>
+<li>Mở lần chạy vừa tạo, tải artifact <code>youtube-shorts-review-package</code>.</li>
+<li>Kiểm tra claim, nguồn dẫn chứng, bản quyền tư liệu và nội dung. Các claim khởi tạo đều là <code>UNREVIEWED</code>.</li>
+<li>Việc render video vẫn phụ thuộc vào pipeline hiện có và các cổng kiểm tra. Không có bước upload/publish trong workflow này.</li>
+</ol>
+<h2>Các nhánh phát triển hiện có</h2>
+<ul>
+<li><a class="link" href="../../tree/feature/v1.1-batch-workflow">V1.1 — Batch workflow</a></li>
+<li><a class="link" href="../../tree/feature/v1.2-reliable-render-upload">V1.2 — Reliable render/upload</a></li>
+<li><a class="link" href="../../tree/feature/v1.7-video-dashboard">V1.7 — Video dashboard</a></li>
+<li><a class="link" href="../../tree/feature/v2.0-production-pipeline">V2.0 — Production pipeline</a></li>
+<li><a class="link" href="../../tree/feature/v2.2-fact-check-sources">V2.2 — Fact-check evidence register</a></li>
+<li><a class="link" href="../../tree/feature/v2.3-video-rendering-integration">V2.3 — Video rendering</a></li>
+<li><a class="link" href="../../tree/feature/v2.4-final-video-quality-gate">V2.4 — Final video quality gate</a></li>
+<li><a class="link" href="../../tree/feature/v2.5-one-click-auto-production">V2.5 — One-click production gates</a></li>
+</ul>
+<footer>Control Center v1.0 · Draft-only workflow · No secrets are requested or stored by this page. Never commit YouTube OAuth credentials, tokens, API keys, or private output files.</footer>
+</main>
+</body></html>
