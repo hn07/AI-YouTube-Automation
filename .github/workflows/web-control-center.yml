@@ -78,7 +78,7 @@ jobs:
           )
 
           if os.environ["CREATE_REGISTER"].lower() == "true":
-              sentences = [s.strip() for s in re.split(r"(?<=[.!?])\\s+", script) if s.strip()]
+              sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", script) if s.strip()]
               claims = []
               for i, sentence in enumerate(sentences, 1):
                   claims.append({
