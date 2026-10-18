@@ -129,4 +129,71 @@ else:
     st.markdown("1. Nhập chủ đề.\\n2. Chọn Shorts hoặc video dài ở thanh bên.\\n3. Chọn giọng đọc.\\n4. (Không bắt buộc) nhập API key từ dịch vụ có model miễn phí.\\n5. Bấm **Tạo kịch bản và dựng video** rồi chờ hoàn tất.\\n6. Tải MP4 hoặc ZIP về máy.")
     st.warning("Không có API key thì ứng dụng dùng kịch bản mẫu, không phải AI và nội dung có thể chung chung. Giọng đọc và tìm ảnh cần Internet.")
 st.divider()
+st.header("🗓️ Lịch đăng YouTube")
+st.markdown("Chọn video đã dựng, nhập thông tin và thời điểm đăng. Ứng dụng **không tự đăng nền**: video chỉ được tải lên và lên lịch sau khi bạn đánh dấu xác nhận và bấm nút bên dưới.")
+client_file = ROOT / "client_secret.json"
+if not client_file.exists():
+    st.warning("Để bật chức năng này, hãy tải OAuth Client JSON từ Google Cloud Console (YouTube Data API v3) và đặt tên client_secret.json trong thư mục ứng dụng. Không gửi tệp này cho người khác.")
+video_candidates = sorted(OUTPUT_ROOT.glob("**/*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
+if not video_candidates:
+    st.caption("Chưa có MP4 nào. Hãy tạo video trước.")
+else:
+    selected_video = st.selectbox("Video cần lên lịch", video_candidates, format_func=lambda p: f"{p.parent.parent.name} — {p.name}")
+    with st.form("youtube_schedule_form"):
+        yt_title = st.text_input("Tiêu đề YouTube", value=selected_video.parent.parent.name.replace("_", " ")[:100], max_chars=100)
+        yt_description = st.text_area("Mô tả video", value="Created with Nham YouTube Studio.", height=100, max_chars=5000)
+        col_date, col_time = st.columns(2)
+        with col_date:
+            schedule_date = st.date_input("Ngày đăng", value=date.today() + timedelta(days=1), min_value=date.today())
+        with col_time:
+            schedule_time = st.time_input("Giờ đăng (giờ Việt Nam)", value=time(19, 0), step=900)
+        audience = st.selectbox("Đối tượng", ["Không dành riêng cho trẻ em", "Dành cho trẻ em"])
+        confirmed = st.checkbox("Tôi đã xem lại video, có quyền sử dụng hình/âm thanh và xác nhận tải video lên YouTube ở chế độ riêng tư để lên lịch.")
+        submit_schedule = st.form_submit_button("🔐 Đăng nhập Google và tải lên / lên lịch", type="primary", use_container_width=True)
+    if submit_schedule:
+        if not client_file.exists():
+            st.error("Thiếu client_secret.json. Hãy thiết lập OAuth trong Google Cloud Console trước.")
+        elif not yt_title.strip():
+            st.error("Vui lòng nhập tiêu đề video.")
+        elif not confirmed:
+            st.error("Bạn cần đánh dấu xác nhận trước khi tải video lên.")
+        else:
+            local_dt = datetime.combine(schedule_date, schedule_time).replace(tzinfo=timezone(timedelta(hours=7)))
+            if local_dt <= datetime.now(timezone(timedelta(hours=7))) + timedelta(minutes=2):
+                st.error("Chọn thời điểm trong tương lai ít nhất 2 phút.")
+            else:
+                try:
+                    from google.oauth2.credentials import Credentials
+                    from google_auth_oauthlib.flow import InstalledAppFlow
+                    from google.auth.transport.requests import Request
+                    from googleapiclient.discovery import build
+                    from googleapiclient.http import MediaFileUpload
+                    token_file = ROOT / "youtube_token.json"
+                    scopes = ["https://www.googleapis.com/auth/youtube.upload"]
+                    creds = None
+                    if token_file.exists():
+                        creds = Credentials.from_authorized_user_file(str(token_file), scopes)
+                    if not creds or not creds.valid:
+                        if creds and creds.expired and creds.refresh_token:
+                            creds.refresh(Request())
+                        else:
+                            flow = InstalledAppFlow.from_client_secrets_file(str(client_file), scopes)
+                            creds = flow.run_local_server(port=0, prompt="consent")
+                        token_file.write_text(creds.to_json(), encoding="utf-8")
+                    youtube = build("youtube", "v3", credentials=creds)
+                    publish_at = local_dt.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+                    body = {"snippet": {"title": yt_title.strip(), "description": yt_description.strip(), "categoryId": "22"},
+                            "status": {"privacyStatus": "private", "publishAt": publish_at,
+                                       "selfDeclaredMadeForKids": audience == "Dành cho trẻ em"}}
+                    media = MediaFileUpload(str(selected_video), mimetype="video/*", resumable=True)
+                    with st.spinner("Đang tải video lên YouTube và thiết lập lịch đăng…"):
+                        response = youtube.videos().insert(part="snippet,status", body=body, media_body=media).execute()
+                    st.success("Đã tải lên và đặt lịch thành công.")
+                    st.write("YouTube video ID:", response.get("id", ""))
+                    st.write("Thời điểm đăng theo giờ Việt Nam:", local_dt.strftime("%d/%m/%Y %H:%M"))
+                    st.markdown(f"[Mở video trong YouTube Studio](https://studio.youtube.com/video/{response.get('id','')}/edit)")
+                except Exception as exc:
+                    st.error(f"Không thể lên lịch YouTube: {exc}")
+                    st.caption("Kiểm tra quyền YouTube Data API v3, OAuth Client kiểu Desktop app, hạn mức API và trạng thái kênh.")
+
 st.caption("Local Studio V1.1 • Caption lớn, hình theo từng cảnh • Chỉ upload/lên lịch khi bạn bấm xác nhận")
