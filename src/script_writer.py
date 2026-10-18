@@ -6,7 +6,16 @@ def clean_topic(topic: str) -> str:
     return topic[:180] or "One surprising fact about everyday life"
 
 def generate_script(topic: str, style: str = "curiosity") -> str:
-    """Reliable local fallback. This is a template, not an LLM-generated factual script."""
+    """Use optional configured AI provider; otherwise retain the reliable local fallback."""
+    import os
+    try:
+        from src.ai_script_provider import generate as generate_ai_script
+        ai_script = generate_ai_script(topic, style)
+        if ai_script:
+            return ai_script
+    except Exception:
+        if os.getenv("AI_REQUIRE_REMOTE", "0").strip() == "1":
+            raise
     t = clean_topic(topic)
     if style == "story":
         parts = [
