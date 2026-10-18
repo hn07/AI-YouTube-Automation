@@ -21,7 +21,7 @@ echo [3] Imports and topic bank
 venv\Scripts\python.exe -c "from src.run_guard import single_instance_lock; from src.topic_generator import TOPICS; assert len(TOPICS)>=30 and len(TOPICS)==len(set(TOPICS)); print('Imports OK; topics:',len(TOPICS))" >> "%LOG%" 2>&1
 if errorlevel 1 goto failed
 echo [4] Slot planning logic (no network or upload)
-venv\Scripts\python.exe -c "from datetime import datetime; from zoneinfo import ZoneInfo; from daily_runner import next_distinct_slots; z=ZoneInfo('Asia/Ho_Chi_Minh'); s=next_distinct_slots(3,datetime(2026,10,18,6,0,tzinfo=z)); assert [x.strftime('%%H:%%M') for x in s]==['07:00','11:00','18:00']; assert all(x>datetime(2026,10,18,6,0,tzinfo=z) for x in s); print('Slot logic OK')" >> "%LOG%" 2>&1
+venv\Scripts\python.exe -c "from datetime import datetime; from zoneinfo import ZoneInfo; from daily_runner import next_distinct_slots; z=ZoneInfo('Asia/Ho_Chi_Minh'); s=next_distinct_slots(3,datetime(2026,10,18,6,0,tzinfo=z)); assert [(x.hour,x.minute) for x in s]==[(7,0),(11,0),(18,0)]; assert all(x>datetime(2026,10,18,6,0,tzinfo=z) for x in s); print('Slot logic OK')" >> "%LOG%" 2>&1
 if errorlevel 1 goto failed
 echo [5] FFmpeg and FFprobe
 where ffmpeg >> "%LOG%" 2>&1
