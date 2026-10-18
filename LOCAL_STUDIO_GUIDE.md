@@ -3,8 +3,8 @@
 ## Tính năng
 - Giao diện tiếng Việt chạy trên máy tại http://localhost:8501.
 - Chỉ cần nhập chủ đề; chọn Shorts 9:16 hoặc video dài 16:9 và giọng đọc.
-- Có thể nhập API key OpenRouter để thử model miễn phí tạo kịch bản theo chủ đề. Khóa chỉ dùng trong phiên giao diện, không được ghi vào tệp.
-- Nếu không có API key hoặc model miễn phí không hoạt động, app dùng kịch bản mẫu dự phòng. Đây không phải mô hình AI và có thể chung chung.
+- Có thể nhập API key OpenRouter và chọn router `openrouter/free` để tự chọn model miễn phí đang hoạt động. Có nút kiểm tra API. Khóa chỉ dùng trong phiên giao diện, không được ghi vào tệp.
+- Nếu không có API key, app dùng kịch bản mẫu dự phòng. Nếu API lỗi, app hiển thị mã lỗi/chi tiết thay vì âm thầm chuyển sang kịch bản mẫu.
 - Dùng edge-tts để tạo giọng đọc, Wikimedia Commons để tìm ảnh và FFmpeg để kết xuất MP4.
 - Lưu kết quả trong local-output. Có nút tải MP4 và ZIP.
 - Caption lớn, tương phản cao hơn; tìm ảnh theo từng câu/cảnh và xuất scene_image_matches.json để kiểm tra.
@@ -23,7 +23,7 @@
 1. Nhập chủ đề.
 2. Chọn Shorts hoặc video dài trong thanh bên.
 3. Chọn giọng đọc.
-4. Tùy chọn: nhập API key từ dịch vụ có model miễn phí để tạo kịch bản sát chủ đề hơn. Quyền truy cập miễn phí và model khả dụng có thể thay đổi, không được đảm bảo.
+4. Nhập API key OpenRouter đầy đủ (không chia sẻ khóa), chọn `openrouter/free`, bấm **Kiểm tra API key và model** trước khi tạo video. Model miễn phí và giới hạn có thể thay đổi.
 5. Bấm Tạo kịch bản và dựng video, chờ xử lý rồi tải MP4 hoặc ZIP.
 6. Kết quả cũng được lưu trong local-output/<job>/.
 
@@ -44,3 +44,9 @@
 6. Trình duyệt mở đăng nhập Google. Video được tải lên ở chế độ riêng tư với thời điểm `publishAt`; hãy kiểm tra lại trong YouTube Studio. Lần đầu có thể cần chấp thuận quyền upload.
 
 **Lưu ý:** Lịch đăng chỉ thực hiện khi bạn bấm nút và xác nhận. Chức năng cần Internet, quyền OAuth và quota YouTube API. Không thể bảo đảm lịch được chấp nhận nếu Google chưa xác minh/cấp quyền API. Giữ riêng `client_secret.json` và `youtube_token.json`; không đưa chúng lên GitHub.
+
+## Sửa lỗi caption nhỏ trên Windows
+Renderer đã được cập nhật để ưu tiên font Arial/Segoe UI của Windows. Trước đây đường dẫn font chỉ trỏ tới Linux; trên Windows có thể rơi về font mặc định rất nhỏ. Sau khi cập nhật, hãy tạo video mới vì MP4 cũ không tự thay đổi.
+
+## OpenRouter trả về HTTP 404
+Model cũ `meta-llama/llama-3.3-70b-instruct:free` có thể không còn endpoint. Chọn `openrouter/free` trong ứng dụng và dùng nút kiểm tra API. Nếu vẫn lỗi, đọc thông báo HTTP và kiểm tra khóa trong OpenRouter; đừng đăng khóa lên GitHub/chat công khai.
