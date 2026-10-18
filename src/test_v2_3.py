@@ -22,7 +22,7 @@ class V23RenderingTests(unittest.TestCase):
             "Some regions are difficult to observe directly. Researchers compare measurements, "
             "photographs, and samples to understand what lives there. The details vary by depth, "
             "location, and conditions. Always check reliable sources before repeating a specific claim. "
-            "The most interesting discoveries often lead to new questions.",
+            "The most interesting discoveries often lead to new questions, careful experiments, and better explanations that can be shared with curious viewers.",
             encoding="utf-8",
         )
         self.register_path = self.root / "output" / "fact_check" / (self.job_id + "_claims.json")
