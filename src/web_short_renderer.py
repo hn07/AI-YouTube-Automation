@@ -37,18 +37,33 @@ def commons_search(topic):
             return re.sub(r"<[^>]*>","",raw).strip()
         title=page.get("title","Untitled")
         results.append({"title":title,"url":url,"artist":val("Artist") or "Not listed","license":val("LicenseShortName") or "Check source","credit":val("Credit"),"source":"https://commons.wikimedia.org/wiki/"+quote(title.replace(" ","_"))})
-    return results
+    terms=set(re.findall(r"[a-z]{3,}", topic.lower()))
+    def score(item):
+        title_terms=set(re.findall(r"[a-z]{3,}", item["title"].lower().replace("_"," ")))
+        return len(terms & title_terms)
+    return sorted(results,key=score,reverse=True)
 
-def download_backgrounds(topic):
+STOPWORDS=set("""a an the and or but if then than so of in on at to for from by with about into over after before during is are was were be been being it its this that these those he she they them his her their you your we our i me my as not no do does did have has had can could will would should may might who what when where why how very more most some any all each other also just only up out there here""".split())
+
+def download_backgrounds(topic, sentences):
     ASSETS.mkdir(parents=True,exist_ok=True); credits=[]; paths=[]
-    for i,item in enumerate(commons_search(topic)):
-        try:
-            r=requests.get(item["url"],headers={"User-Agent":UA},timeout=30); r.raise_for_status()
-            p=ASSETS/f"commons_{i:02d}.jpg"; p.write_bytes(r.content)
-            with Image.open(p) as im: im.verify()
-            item["local_path"]=str(p); paths.append(p); credits.append(item)
-        except Exception as exc: print("Skipping image:",item.get("title"),exc)
+    for i,sentence in enumerate(sentences):
+        words=[w for w in re.findall(r"[A-Za-z][A-Za-z'-]{2,}",sentence.lower()) if w not in STOPWORDS]
+        query=" ".join(dict.fromkeys(words[:6])) or topic
+        candidates=commons_search(query) or commons_search(topic)
+        saved=False
+        for rank,item in enumerate(candidates):
+            try:
+                r=requests.get(item["url"],headers={"User-Agent":UA},timeout=30); r.raise_for_status()
+                p=ASSETS/f"commons_scene_{i:03d}.jpg"; p.write_bytes(r.content)
+                with Image.open(p) as im: im.verify()
+                item["local_path"]=str(p); item["matched_sentence"]=sentence; item["search_query"]=query
+                paths.append(p); credits.append(item); saved=True; break
+            except Exception as exc: print("Skipping image:",item.get("title"),exc)
+        if not saved: print(f"No suitable image downloaded for scene {i+1}; using designed background.")
+        if not saved: paths.append(None)
     (OUT/"image_credits.json").write_text(json.dumps(credits,indent=2,ensure_ascii=False),encoding="utf-8")
+    (OUT/"scene_image_matches.json").write_text(json.dumps([{"scene":i+1,"sentence":s,"image":str(paths[i]) if paths[i] else "designed abstract background"} for i,s in enumerate(sentences)],indent=2,ensure_ascii=False),encoding="utf-8")
     return paths
 
 def background(index,topic):
@@ -72,18 +87,22 @@ def make_scene(sentence,index,total,photos,topic,path):
     overlay=Image.new("RGBA",(W,H),(0,0,0,0)); od=ImageDraw.Draw(overlay)
     od.rectangle((45,150,W-45,H-150),fill=(0,0,0,65))
     im=Image.alpha_composite(im,overlay); d=ImageDraw.Draw(im)
-    d.text((72,90),topic[:50].upper(),font=font(42,True),fill=(125,225,255),stroke_width=2,stroke_fill=(0,0,0))
-    d.rounded_rectangle((55,590,W-55,1350),radius=32,fill=(0,0,0,178),outline=(95,205,245,200),width=3)
-    lines=[]; line=""
+    d.text((72,90),topic[:50].upper(),font=font(36,True),fill=(125,225,255),stroke_width=2,stroke_fill=(0,0,0))
+    d.rounded_rectangle((48,500,W-48,1450),radius=42,fill=(0,0,0,192),outline=(100,220,255,235),width=5)
+    f=font(74,True); lines=[]; line=""
     for word in sentence.split():
         candidate=(line+" "+word).strip()
-        if len(candidate)>24 and line: lines.append(line); line=word
+        if d.textbbox((0,0),candidate,font=f,stroke_width=2)[2] > W-180 and line:
+            lines.append(line); line=word
         else: line=candidate
     if line: lines.append(line)
-    lines=lines[:8]; y=970-len(lines)*42
-    for ln in lines:
-        f=font(58,True); box=d.textbbox((0,0),ln,font=f,stroke_width=2)
-        d.text(((W-(box[2]-box[0]))//2,y),ln,font=f,fill="white",stroke_width=2,stroke_fill="black"); y+=85
+    lines=lines[:7]
+    heights=[d.textbbox((0,0),ln,font=f,stroke_width=2)[3] for ln in lines]
+    y=(H-sum(heights)-(len(lines)-1)*28)//2
+    for ln,height in zip(lines,heights):
+        box=d.textbbox((0,0),ln,font=f,stroke_width=2)
+        d.text(((W-(box[2]-box[0]))//2,y),ln,font=f,fill="white",stroke_width=3,stroke_fill="black")
+        y+=height+28
     d.text((72,H-115),f"SCENE {index+1:02d}/{total:02d}  •  DRAFT",font=font(30),fill=(230,245,250))
     im.convert("RGB").save(path,quality=92)
 
@@ -100,9 +119,9 @@ def main():
     voice=os.environ.get("VOICE","en-US-AriaNeural").strip()
     if not topic or not script: raise SystemExit("Topic and script are required.")
     OUT.mkdir(parents=True,exist_ok=True); ASSETS.mkdir(parents=True,exist_ok=True)
-    parts=split_sentences(script); photos=download_backgrounds(topic); scenes=[]
+    parts=split_sentences(script); photos=download_backgrounds(topic,parts); scenes=[]
     for i,part in enumerate(parts):
-        p=ASSETS/f"scene_{i:03d}.jpg"; make_scene(part,i,len(parts),photos,topic,p); scenes.append(p)
+        p=ASSETS/f"scene_{i:03d}.jpg"; scene_photos=[photos[i]] if i < len(photos) and photos[i] else []; make_scene(part,i,len(parts),scene_photos,topic,p); scenes.append(p)
     narration=OUT/"narration.mp3"; asyncio.run(synthesize(script,voice,narration))
     duration=float(subprocess.check_output(["ffprobe","-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",str(narration)],text=True).strip())
     weights=[max(1,len(p.split())) for p in parts]; durations=[duration*w/sum(weights) for w in weights]
@@ -123,7 +142,7 @@ def main():
         "DRAFT ONLY: this workflow never uploads, schedules, or publishes to YouTube.\n"
         "Review script accuracy, voice pronunciation, visual relevance, captions, and audio mix.\n"
         "Wikimedia Commons image sources, artists, and licenses are listed in image_credits.json. Confirm license/attribution requirements before reuse.\n"
-        "If no Commons images download, original abstract backgrounds are generated instead.\n"
+        "Images are searched per scene using sentence keywords; inspect scene_image_matches.json. If no matching image downloads, an original abstract background is generated.\n"
         "Ambient sound is synthesized; it is not a commercial music track.\n",encoding="utf-8")
     print("Created review-only video:",video)
     print("No YouTube upload, scheduling, or publishing performed.")
