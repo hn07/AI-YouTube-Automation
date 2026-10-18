@@ -195,6 +195,7 @@ def evaluate_register(job_id: str, register_path: str = "", root: Optional[Path]
         ]
     }
     report_path = root / "output" / "fact_check" / (job_id + "_fact_check_report_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".json")
+    report["report_path"] = str(report_path)
     _atomic_json(report_path, report, exclusive=True)
     job.setdefault("v2_2_fact_check_runs", []).append({
         "checked_at_utc": report["checked_at_utc"],
@@ -238,7 +239,8 @@ def main(argv=None) -> int:
         print("Claims: {} | Verified: {} | Uncertain: {} | Unsupported: {} | Unreviewed: {} | Invalid: {}".format(
             report["claim_count"], report["counts"]["VERIFIED"], report["counts"]["UNCERTAIN"],
             report["counts"]["UNSUPPORTED"], report["counts"]["UNREVIEWED"], report["counts"]["INVALID"]))
-        print("Report: {}".format(report["register_path"]))
+        print("Register: {}".format(report["register_path"]))
+        print("Report: {}".format(report["report_path"]))
         print("Machine report: {}".format(report.get("checked_at_utc", "")))
         print("This validates human review records and URL format only; it does not independently verify truth.")
         return 0 if report["status"] == "HUMAN_REVIEW_COMPLETE" else 1
