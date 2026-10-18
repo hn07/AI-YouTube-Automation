@@ -74,7 +74,7 @@ jobs:
           (out / "job_metadata.json").write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
           if os.environ["CREATE_REGISTER"].lower() == "true":
               # Split on sentence-ending punctuation, retaining each extracted sentence as a review item.
-              sentences = [s.strip() for s in re.split(r"(?<=[.!?])\\s+", script) if s.strip()]
+              sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", script) if s.strip()]
               claims = []
               for i, sentence in enumerate(sentences, 1):
                   claims.append({
