@@ -104,8 +104,11 @@ def run_production(job_id: str, voice: str = "en-US-AriaNeural") -> dict:
                 if not isinstance(claims, list) or not claims:
                     blockers.append("V2.2 claim register has no claims.")
                 else:
-                    pending = [str(c.get("claim_id", c.get("claim", "unknown"))) for c in claims
-                               if not isinstance(c, dict) or str(c.get("status", "")).upper() != "VERIFIED"]
+                    pending = [
+                        str(c.get("claim_id", c.get("claim", "unknown"))) if isinstance(c, dict) else "malformed_claim"
+                        for c in claims
+                        if not isinstance(c, dict) or str(c.get("status", "")).upper() != "VERIFIED"
+                    ]
                     if pending:
                         blockers.append("Unverified claims remain: " + ", ".join(pending[:20]))
                 reg_script_value = (register.get("script_path") or "").strip()
