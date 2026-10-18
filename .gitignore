@@ -7,3 +7,8 @@ work/
 credentials/client_secret.json
 credentials/token.json
 .streamlit/
+
+# Private Google OAuth credentials and tokens
+/client_secret.json
+/youtube_token.json
+*.client_secret.json
