@@ -14,8 +14,19 @@ def run(cmd):
     subprocess.run(cmd, check=True)
 
 def font(size,bold=False):
-    p="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    return ImageFont.truetype(p,size) if Path(p).exists() else ImageFont.load_default()
+    candidates = [
+        Path("C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf"),
+        Path("C:/Windows/Fonts/segoeuib.ttf" if bold else "C:/Windows/Fonts/segoeui.ttf"),
+        Path("C:/Windows/Fonts/calibrib.ttf" if bold else "C:/Windows/Fonts/calibri.ttf"),
+        Path("C:/Windows/Fonts/impact.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+    ]
+    for p in candidates:
+        if p.exists():
+            try: return ImageFont.truetype(str(p), size)
+            except OSError: pass
+    try: return ImageFont.truetype("arialbd.ttf" if bold else "arial.ttf", size)
+    except OSError: return ImageFont.load_default()
 
 def split_sentences(text):
     items=[x.strip() for x in re.split(r"(?<=[.!?])\s+",text.strip()) if x.strip()]
@@ -87,23 +98,36 @@ def make_scene(sentence,index,total,photos,topic,path):
     overlay=Image.new("RGBA",(W,H),(0,0,0,0)); od=ImageDraw.Draw(overlay)
     od.rectangle((45,150,W-45,H-150),fill=(0,0,0,65))
     im=Image.alpha_composite(im,overlay); d=ImageDraw.Draw(im)
-    d.text((72,90),topic[:50].upper(),font=font(36,True),fill=(125,225,255),stroke_width=2,stroke_fill=(0,0,0))
-    d.rounded_rectangle((48,500,W-48,1450),radius=42,fill=(0,0,0,192),outline=(100,220,255,235),width=5)
-    f=font(74,True); lines=[]; line=""
+    # Large, two-line title banner; keep the topic readable even on phone screens.
+    title_font=font(54,True)
+    title_words=topic.upper().split()
+    title_lines=[]; title_line=""
+    for word in title_words:
+        candidate=(title_line+" "+word).strip()
+        if d.textbbox((0,0),candidate,font=title_font,stroke_width=2)[2] > W-150 and title_line:
+            title_lines.append(title_line); title_line=word
+        else: title_line=candidate
+    if title_line: title_lines.append(title_line)
+    d.rounded_rectangle((45,55,W-45,245),radius=30,fill=(0,0,0,190),outline=(100,220,255,230),width=4)
+    for ti,title_line in enumerate(title_lines[:2]):
+        box=d.textbbox((0,0),title_line,font=title_font,stroke_width=2)
+        d.text(((W-(box[2]-box[0]))//2,75+ti*78),title_line,font=title_font,fill=(145,235,255),stroke_width=3,stroke_fill=(0,0,0))
+    d.rounded_rectangle((35,390,W-35,1510),radius=48,fill=(0,0,0,218),outline=(100,220,255,245),width=6)
+    f=font(92,True); lines=[]; line=""
     for word in sentence.split():
         candidate=(line+" "+word).strip()
-        if d.textbbox((0,0),candidate,font=f,stroke_width=2)[2] > W-180 and line:
+        if d.textbbox((0,0),candidate,font=f,stroke_width=2)[2] > W-130 and line:
             lines.append(line); line=word
         else: line=candidate
     if line: lines.append(line)
-    lines=lines[:7]
+    lines=lines[:8]
     heights=[d.textbbox((0,0),ln,font=f,stroke_width=2)[3] for ln in lines]
-    y=(H-sum(heights)-(len(lines)-1)*28)//2
+    y=(H-sum(heights)-(len(lines)-1)*24)//2
     for ln,height in zip(lines,heights):
         box=d.textbbox((0,0),ln,font=f,stroke_width=2)
         d.text(((W-(box[2]-box[0]))//2,y),ln,font=f,fill="white",stroke_width=3,stroke_fill="black")
-        y+=height+28
-    d.text((72,H-115),f"SCENE {index+1:02d}/{total:02d}  •  DRAFT",font=font(30),fill=(230,245,250))
+        y+=height+24
+    d.text((72,H-115),f"SCENE {index+1:02d}/{total:02d}  •  DRAFT",font=font(34,True),fill=(255,255,255),stroke_width=2,stroke_fill=(0,0,0))
     im.convert("RGB").save(path,quality=92)
 
 async def synthesize(script,voice,path):
