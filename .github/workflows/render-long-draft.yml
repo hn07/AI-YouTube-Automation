@@ -1,0 +1,55 @@
+name: Render YouTube Long-Form Draft (Free)
+
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "Main topic and visual context"
+        required: true
+        type: string
+      script_text:
+        description: "Paste the reviewed English script for a 5–10 minute landscape video"
+        required: true
+        type: string
+      voice:
+        description: "English narration voice"
+        required: true
+        type: choice
+        options:
+          - en-US-AriaNeural
+          - en-US-GuyNeural
+          - en-US-JennyNeural
+        default: en-US-AriaNeural
+
+permissions:
+  contents: read
+
+jobs:
+  render-long-draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install FFmpeg and Python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install --upgrade pip
+          python -m pip install Pillow requests edge-tts
+
+      - name: Render 16:9 long-form video draft
+        env:
+          TOPIC: ${{ inputs.topic }}
+          SCRIPT_TEXT: ${{ inputs.script_text }}
+          VOICE: ${{ inputs.voice }}
+        run: python src/web_long_renderer.py
+
+      - name: Upload long-form draft package
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-long-video-draft-${{ github.run_number }}
+          path: rendered-long-draft/
+          if-no-files-found: error
+          retention-days: 30
