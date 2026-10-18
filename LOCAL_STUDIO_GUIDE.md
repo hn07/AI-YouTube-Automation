@@ -7,7 +7,9 @@
 - Nếu không có API key hoặc model miễn phí không hoạt động, app dùng kịch bản mẫu dự phòng. Đây không phải mô hình AI và có thể chung chung.
 - Dùng edge-tts để tạo giọng đọc, Wikimedia Commons để tìm ảnh và FFmpeg để kết xuất MP4.
 - Lưu kết quả trong local-output. Có nút tải MP4 và ZIP.
-- Không dùng YouTube OAuth và không có chức năng upload, schedule hoặc publish.
+- Caption lớn, tương phản cao hơn; tìm ảnh theo từng câu/cảnh và xuất scene_image_matches.json để kiểm tra.
+- Có mục lên lịch YouTube có xác nhận: chỉ tải video lên khi người dùng đánh dấu đồng ý và bấm nút; không tự đăng nền.
+- OAuth token được lưu cục bộ trong youtube_token.json; không chia sẻ tệp này.
 
 ## Cài đặt lần đầu
 1. Cài Python 3.12 (khuyên dùng) hoặc 3.11 tại https://www.python.org/downloads/. Chọn Add Python to PATH.
@@ -32,3 +34,13 @@
 - Video dài hướng tới 5–10 phút nhưng có thể cần chỉnh kịch bản nếu giọng đọc ngoài thời lượng đó.
 - Dùng Python 3.11/3.12; Python 3.14 chưa được kiểm thử.
 - Công cụ chỉ tạo video nháp. Không tự tải lên hoặc đăng YouTube.
+
+## Cài đặt chức năng lên lịch YouTube
+1. Trong Google Cloud Console, tạo project và bật **YouTube Data API v3**.
+2. Cấu hình OAuth consent screen; thêm tài khoản Google của bạn vào danh sách Test users nếu ứng dụng đang ở chế độ Testing.
+3. Tạo OAuth Client ID loại **Desktop app**, tải JSON và đổi tên thành `client_secret.json`; đặt cạnh `local_studio.py`. Không commit hoặc chia sẻ tệp này.
+4. Chạy lại `INSTALL_LOCAL.bat` để cài các thư viện Google API.
+5. Trong app, chọn MP4, điền tiêu đề/mô tả, ngày giờ Việt Nam, đối tượng video; đọc kỹ xác nhận rồi bấm **Đăng nhập Google và tải lên / lên lịch**.
+6. Trình duyệt mở đăng nhập Google. Video được tải lên ở chế độ riêng tư với thời điểm `publishAt`; hãy kiểm tra lại trong YouTube Studio. Lần đầu có thể cần chấp thuận quyền upload.
+
+**Lưu ý:** Lịch đăng chỉ thực hiện khi bạn bấm nút và xác nhận. Chức năng cần Internet, quyền OAuth và quota YouTube API. Không thể bảo đảm lịch được chấp nhận nếu Google chưa xác minh/cấp quyền API. Giữ riêng `client_secret.json` và `youtube_token.json`; không đưa chúng lên GitHub.
