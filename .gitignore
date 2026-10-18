@@ -12,3 +12,12 @@ credentials/token.json
 /client_secret.json
 /youtube_token.json
 *.client_secret.json
+
+# Local automation secrets, state, logs, and generated media
+.env
+.env.*
+!.env.example
+auto-publish-state.sqlite3
+auto-publish.log
+local-output/
+.venv-auto/
