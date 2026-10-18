@@ -41,15 +41,15 @@ jobs:
 
       - name: Render video draft
         env:
-          TOPIC: \${{ inputs.topic }}
-          SCRIPT_TEXT: \${{ inputs.script_text }}
-          VOICE: \${{ inputs.voice }}
+          TOPIC: ${{ inputs.topic }}
+          SCRIPT_TEXT: ${{ inputs.script_text }}
+          VOICE: ${{ inputs.voice }}
         run: python src/web_short_renderer.py
 
       - name: Upload draft video package
         uses: actions/upload-artifact@v4
         with:
-          name: youtube-short-video-draft-\${{ github.run_number }}
+          name: youtube-short-video-draft-${{ github.run_number }}
           path: rendered-draft/
           if-no-files-found: error
           retention-days: 30
