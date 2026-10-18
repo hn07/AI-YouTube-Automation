@@ -133,26 +133,26 @@ def make_scene(sentence, index, total, image_path, topic, output):
     d = ImageDraw.Draw(im)
     d.text((90, 55), topic[:90].upper(), font=font(34, True), fill=(145,225,255),
            stroke_width=2, stroke_fill=(0,0,0))
-    d.rounded_rectangle((100, 665, W-100, 950), radius=28,
-                        fill=(0,0,0,165), outline=(100,205,245,190), width=2)
-    # Wrap by measured width to keep captions readable on 16:9.
-    f = font(43, True)
+    d.rounded_rectangle((80, 600, W-80, 1010), radius=34,
+                        fill=(0,0,0,198), outline=(115,220,255,235), width=4)
+    # Large, high-contrast captions designed for phone and desktop viewing.
+    f = font(62, True)
     words = sentence.split()
     lines, line = [], ""
     for word in words:
         candidate = (line + " " + word).strip()
-        if d.textbbox((0,0), candidate, font=f, stroke_width=1)[2] > W-250 and line:
+        if d.textbbox((0,0), candidate, font=f, stroke_width=2)[2] > W-240 and line:
             lines.append(line); line = word
         else:
             line = candidate
     if line: lines.append(line)
     lines = lines[:4]
-    heights = [d.textbbox((0,0), ln, font=f, stroke_width=1)[3] for ln in lines]
-    y = 807 - sum(heights)//2 - (len(lines)-1)*8
+    heights = [d.textbbox((0,0), ln, font=f, stroke_width=2)[3] for ln in lines]
+    y = 805 - sum(heights)//2 - (len(lines)-1)*12
     for ln, height in zip(lines, heights):
         width = d.textbbox((0,0), ln, font=f, stroke_width=1)[2]
-        d.text(((W-width)//2, y), ln, font=f, fill="white", stroke_width=2, stroke_fill="black")
-        y += height + 16
+        d.text(((W-width)//2, y), ln, font=f, fill="white", stroke_width=3, stroke_fill="black")
+        y += height + 24
     d.text((90, H-62), f"SCENE {index+1:03d}/{total:03d}  •  LONG-FORM DRAFT",
            font=font(24), fill=(235,245,250))
     im.convert("RGB").save(output, quality=92)
