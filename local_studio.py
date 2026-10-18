@@ -109,7 +109,6 @@ if create:
             except Exception as exc:
                 st.error(f"Không gọi được AI: {exc}")
                 st.stop()
-                script = fallback_script(topic.strip(), long_form)
         else:
             script = fallback_script(topic.strip(), long_form)
         (job/"script.txt").write_text(script+"\n", encoding="utf-8")
