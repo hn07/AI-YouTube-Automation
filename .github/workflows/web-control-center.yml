@@ -54,10 +54,12 @@ jobs:
           voice = os.environ["VOICE"].strip()
           if not topic or not script:
               raise SystemExit("Topic and script are required.")
+
           job_id = "web_" + os.environ["RUN_ID"]
           out = Path("web-output") / job_id
           out.mkdir(parents=True, exist_ok=False)
           (out / "script.txt").write_text(script + "\n", encoding="utf-8")
+
           metadata = {
               "schema_version": "web-1.0",
               "job_id": job_id,
@@ -71,10 +73,12 @@ jobs:
               "publish_allowed": False,
               "note": "This workflow creates a review package only; it does not render, upload, schedule, or publish."
           }
-          (out / "job_metadata.json").write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+          (out / "job_metadata.json").write_text(
+              json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+          )
+
           if os.environ["CREATE_REGISTER"].lower() == "true":
-              # Split on sentence-ending punctuation, retaining each extracted sentence as a review item.
-              sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", script) if s.strip()]
+              sentences = [s.strip() for s in re.split(r"(?<=[.!?])\\s+", script) if s.strip()]
               claims = []
               for i, sentence in enumerate(sentences, 1):
                   claims.append({
@@ -100,27 +104,32 @@ jobs:
                       "This workflow does not create human approval and does not publish."
                   ]
               }
-              (out / "claims_review_register.json").write_text(json.dumps(register, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-          readme = f"""# Draft YouTube Shorts package
+              (out / "claims_review_register.json").write_text(
+                  json.dumps(register, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+              )
 
-- Topic: {topic}
-- Job ID: {job_id}
-- Voice preference: {voice}
-- Status: DRAFT ONLY
-- Upload/publish: DISABLED
-
-## Files
-- `script.txt`: submitted script
-- `job_metadata.json`: job metadata and safety gates
-- `claims_review_register.json`: human evidence checklist (if enabled)
-
-## Required next steps
-1. Review the script and rights of every media asset.
-2. Open `claims_review_register.json`; add source URLs and human review notes.
-3. Do not mark claims VERIFIED until a human has checked the sources.
-4. This artifact is not a rendered video. No video rendering or publishing was performed.
-"""
-          (out / "README.md").write_text(readme, encoding="utf-8")
+          readme_lines = [
+              "# Draft YouTube Shorts package",
+              "",
+              f"- Topic: {topic}",
+              f"- Job ID: {job_id}",
+              f"- Voice preference: {voice}",
+              "- Status: DRAFT ONLY",
+              "- Upload/publish: DISABLED",
+              "",
+              "## Files",
+              "- `script.txt`: submitted script",
+              "- `job_metadata.json`: job metadata and safety gates",
+              "- `claims_review_register.json`: human evidence checklist (if enabled)",
+              "",
+              "## Required next steps",
+              "1. Review the script and rights of every media asset.",
+              "2. Open `claims_review_register.json`; add source URLs and human review notes.",
+              "3. Do not mark claims VERIFIED until a human has checked the sources.",
+              "4. This artifact is not a rendered video. No video rendering or publishing was performed.",
+              ""
+          ]
+          (out / "README.md").write_text("\n".join(readme_lines), encoding="utf-8")
           print(f"Created draft review package: {out}")
           print("No video rendering, upload, scheduling, or publishing performed.")
           PY
