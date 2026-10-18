@@ -48,9 +48,25 @@ def init_db():
 
 def already_done(day, slot):
     with sqlite3.connect(STATE_DB) as db:
-        row = db.execute("SELECT status, video_id FROM jobs WHERE publish_date=? AND slot=?",
+        row = db.execute("SELECT status, video_id, updated_at FROM jobs WHERE publish_date=? AND slot=?",
                          (day.isoformat(), slot)).fetchone()
-    return row if row and row[0] in ("uploaded", "processing") else None
+    if not row:
+        return None
+    if row[0] == "uploaded":
+        return row[:2]
+    if row[0] == "processing":
+        # A process killed or crashed can leave a stale lock. Permit retry after 3 hours.
+        try:
+            updated = datetime.fromisoformat(row[2])
+            if updated.tzinfo is None:
+                updated = updated.replace(tzinfo=LOCAL_TZ)
+            age = datetime.now(LOCAL_TZ) - updated.astimezone(LOCAL_TZ)
+            if age < timedelta(hours=3):
+                return row[:2]
+            log(f"Phát hiện job processing cũ ({age}); cho phép chạy lại slot {slot}.")
+        except (ValueError, TypeError):
+            log(f"Không đọc được thời gian trạng thái processing cũ; cho phép thử lại slot {slot}.")
+    return None
 
 def record(day, slot, topic, status, video_id=None, details=""):
     with sqlite3.connect(STATE_DB) as db:
