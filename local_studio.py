@@ -1,6 +1,6 @@
 from __future__ import annotations
 import os, re, subprocess, sys, zipfile, shutil
-from datetime import datetime
+from datetime import datetime, date, time, timedelta, timezone
 from pathlib import Path
 import streamlit as st
 
@@ -11,7 +11,7 @@ VOICES = ["en-US-AriaNeural", "en-US-GuyNeural", "en-US-JennyNeural"]
 st.set_page_config(page_title="Nhâm YouTube Studio", page_icon="🎬", layout="wide")
 st.title("🎬 Nhâm YouTube Studio")
 st.caption("Windows 11 • Nhập chủ đề → tạo kịch bản → dựng video nháp")
-st.info("Chỉ tạo tệp trên máy. Ứng dụng không có chức năng upload, lên lịch hoặc đăng YouTube.")
+st.info("Tạo video nháp trước. Chỉ tải lên và đặt lịch YouTube khi bạn chủ động xác nhận trong mục Lịch đăng.")
 with st.sidebar:
     st.header("Cài đặt")
     kind = st.radio("Loại video", ["Shorts dọc 9:16", "Video dài ngang 16:9"])
@@ -129,4 +129,4 @@ else:
     st.markdown("1. Nhập chủ đề.\\n2. Chọn Shorts hoặc video dài ở thanh bên.\\n3. Chọn giọng đọc.\\n4. (Không bắt buộc) nhập API key từ dịch vụ có model miễn phí.\\n5. Bấm **Tạo kịch bản và dựng video** rồi chờ hoàn tất.\\n6. Tải MP4 hoặc ZIP về máy.")
     st.warning("Không có API key thì ứng dụng dùng kịch bản mẫu, không phải AI và nội dung có thể chung chung. Giọng đọc và tìm ảnh cần Internet.")
 st.divider()
-st.caption("Local Studio V1 • Tạo video nháp • Không upload / schedule / publish YouTube")
+st.caption("Local Studio V1.1 • Caption lớn, hình theo từng cảnh • Chỉ upload/lên lịch khi bạn bấm xác nhận")
