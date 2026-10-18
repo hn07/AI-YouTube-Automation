@@ -19,17 +19,18 @@ footer{margin-top:26px;color:color-mix(in srgb,CanvasText 68%,transparent);font-
 <body>
 <header><h1>AI YouTube Automation</h1><p>Trung tâm thao tác bằng giao diện GitHub — không cần mở CMD cho các bước được hỗ trợ.</p></header>
 <main>
-<div class="notice"><strong>Trạng thái hiện tại:</strong> V2.5 đang chặn đúng quy tắc vì chưa có hồ sơ phê duyệt và rà soát bằng chứng được ghi nhận đầy đủ. Trang này không tự xác minh sự thật, không tự phê duyệt và không đăng video.</div>
+<div class="notice"><strong>Lưu ý quan trọng:</strong> GitHub Pages chỉ hiển thị giao diện tĩnh, nên nút không thể tự khởi chạy workflow. Bấm “Mở form tạo gói”, sau đó tại GitHub Actions hãy chọn nhánh <code>main</code>, bấm <strong>Run workflow</strong>, điền đủ các trường và bấm nút <strong>Run workflow</strong> màu xanh. Trang này không tự xác minh sự thật, không tự phê duyệt và không đăng video.</div>
 <div class="grid">
-<section class="card"><h2>1. Tạo gói kịch bản</h2><p>Mở form GitHub Actions, nhập chủ đề và dán kịch bản. Kết quả là gói nháp và checklist bằng chứng để tải xuống.</p><a class="btn" href="https://github.com/hn07/AI-YouTube-Automation/actions/workflows/web-control-center.yml">Mở form tạo gói</a></section>
+<section class="card"><h2>1. Tạo gói kịch bản</h2><p>Mở form GitHub Actions, nhập chủ đề và dán kịch bản. Kết quả là gói nháp và checklist bằng chứng để tải xuống.</p><a class="btn" href="https://github.com/hn07/AI-YouTube-Automation/actions/workflows/web-control-center.yml">Mở GitHub Actions → Run workflow</a></section>
 <section class="card"><h2>2. Xem các phiên bản</h2><p>Mỗi nhánh chứa một bước phát triển. Có thể mở code, xem thay đổi và so sánh trực tiếp trên GitHub.</p><a class="btn" href="https://github.com/hn07/AI-YouTube-Automation/branches/all">Xem branches</a></section>
 <section class="card"><h2>3. Kiểm tra lần chạy</h2><p>Xem lịch sử chạy, log, trạng thái thành công/thất bại và tải artifact ngay trên giao diện GitHub.</p><a class="btn" href="https://github.com/hn07/AI-YouTube-Automation/actions">Mở Actions</a></section>
 <section class="card"><h2>4. Theo dõi công việc</h2><p>Dùng Issues để ghi nhận lỗi, việc cần làm và tiến độ mà không phải quản lý bằng các lệnh CMD.</p><a class="btn" href="https://github.com/hn07/AI-YouTube-Automation/issues">Mở Issues</a></section>
 </div>
 <h2>Quy trình thao tác</h2>
 <ol>
-<li>Mở <strong>Actions → Web Control Center - YouTube Shorts → Run workflow</strong>.</li>
-<li>Nhập chủ đề, dán kịch bản đã xem xét, chọn giọng đọc mong muốn rồi chạy workflow.</li>
+<li>Bấm <strong>Mở GitHub Actions → Run workflow</strong> ở phía trên. Đây là bước mở trang workflow, chưa chạy job.</li>
+<li>Trong GitHub, chọn nhánh <code>main</code> ở mục <strong>Use workflow from</strong>, rồi bấm <strong>Run workflow</strong> để mở/hiển thị biểu mẫu.</li>
+<li>Điền đủ Topic, Script text, Voice và tùy chọn checklist; sau đó bấm nút xanh <strong>Run workflow</strong> trong biểu mẫu. Nếu không thấy nút này, kiểm tra tab Actions đã được bật và bạn có quyền chạy Actions trong repository.</li>
 <li>Mở lần chạy vừa tạo, tải artifact <code>youtube-shorts-review-package</code>.</li>
 <li>Kiểm tra claim, nguồn dẫn chứng, bản quyền tư liệu và nội dung. Các claim khởi tạo đều là <code>UNREVIEWED</code>.</li>
 <li>Việc render video vẫn phụ thuộc vào pipeline hiện có và các cổng kiểm tra. Không có bước upload/publish trong workflow này.</li>
