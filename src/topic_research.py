@@ -31,7 +31,7 @@ def _local_name(tag):
 
 
 def _clean(value):
-    return re.sub(r"\\s+", " ", (value or "")).strip()
+    return re.sub(r"\s+", " ", (value or "")).strip()
 
 
 def _load_history():
