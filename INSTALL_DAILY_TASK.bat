@@ -21,13 +21,13 @@ echo Topic generation uses a local bank; it does not use a paid AI API or fact-c
 echo.
 choice /M "Install the daily auto-upload task"
 if errorlevel 2 exit /b 0
-schtasks /Create /F /SC DAILY /ST 01:00 /TN "AI YouTube Automation V1.3" /TR "\"%~dp0venv\Scripts\python.exe\" \"%~dp0daily_runner.py\"" /RL LIMITED
+schtasks /Create /F /SC DAILY /ST 01:00 /TN "AI YouTube Automation V1.4" /TR "\"%~dp0venv\Scripts\python.exe\" \"%~dp0daily_runner.py\"" /RL LIMITED
 if errorlevel 1 (
   echo Task creation failed. Retry from a normal Command Prompt under your Windows account.
   pause
   exit /b 1
 )
 echo.
-echo Task installed. Open Task Scheduler to review or disable "AI YouTube Automation V1.3".
-echo To remove it: schtasks /Delete /TN "AI YouTube Automation V1.3" /F
+echo Task installed. Open Task Scheduler to review or disable "AI YouTube Automation V1.4".
+echo To remove it: schtasks /Delete /TN "AI YouTube Automation V1.4" /F
 pause
